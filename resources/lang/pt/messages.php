@@ -80,6 +80,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Background Job Notifications
+    |--------------------------------------------------------------------------
+    */
+    'notification' => [
+        'export_complete' => 'Exportação Concluída',
+        'export_body' => 'Sua exportação com :records registros está pronta. Arquivo: :filename',
+        'download' => 'Baixar',
+        'export_failed' => 'Exportação Falhou',
+        'export_failed_body' => 'A exportação :filename falhou ao processar. Por favor, tente novamente.',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | General
     |--------------------------------------------------------------------------
     */

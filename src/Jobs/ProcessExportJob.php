@@ -5,6 +5,8 @@ namespace Filament\AdvancedExport\Jobs;
 use Filament\AdvancedExport\Exports\AdvancedExport;
 use Filament\AdvancedExport\Exports\SimpleExport;
 use Filament\AdvancedExport\Support\ExportConfig;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
@@ -57,7 +59,13 @@ class ProcessExportJob implements ShouldQueue
         protected ?int $userId = null
     ) {
         $this->onQueue(config('advanced-export.queue.queue', 'exports'));
-        $this->onConnection(config('advanced-export.queue.connection', 'default'));
+
+        // Use the configured connection or fall back to the app's default queue connection
+        $connection = config('advanced-export.queue.connection');
+        if ($connection && $connection !== 'default') {
+            $this->onConnection($connection);
+        }
+        // If connection is null or 'default', let Laravel use QUEUE_CONNECTION from .env
     }
 
     /**
@@ -114,8 +122,8 @@ class ProcessExportJob implements ShouldQueue
 
             Log::info("Export Job: Completed - {$filePath}");
 
-            // TODO: Add notification to user when complete
-            // You can dispatch a notification here if userId is provided
+            // Send notification to user with download link
+            $this->sendCompletionNotification($filePath, $disk, $totalRecords);
 
         } catch (\Exception $e) {
             Log::error("Export Job Error for {$this->modelClass}: ".$e->getMessage(), [
@@ -149,6 +157,9 @@ class ProcessExportJob implements ShouldQueue
      */
     protected function applyFilters(Builder $query): void
     {
+        $model = $query->getModel();
+        $table = $model->getTable();
+
         foreach ($this->filters as $filterName => $filterValue) {
             if (empty($filterValue)) {
                 continue;
@@ -177,11 +188,20 @@ class ProcessExportJob implements ShouldQueue
                 continue;
             }
 
+            // Determine the actual column name
+            // Check if filter is a relationship filter (filterName -> filterName_id)
+            $columnName = $this->resolveColumnName($table, $filterName);
+            if ($columnName === null) {
+                Log::warning("Export Job: Column not found for filter '{$filterName}', skipping");
+
+                continue;
+            }
+
             // Handle array filters (whereIn)
             if (is_array($filterValue)) {
                 $values = array_filter($filterValue, fn ($v) => ! is_null($v) && $v !== '');
                 if (! empty($values)) {
-                    $query->whereIn($filterName, $values);
+                    $query->whereIn($columnName, $values);
                 }
 
                 continue;
@@ -189,9 +209,79 @@ class ProcessExportJob implements ShouldQueue
 
             // Handle simple value filters
             if (is_string($filterValue) || is_numeric($filterValue)) {
-                $query->where($filterName, $filterValue);
+                $query->where($columnName, $filterValue);
             }
         }
+    }
+
+    /**
+     * Resolve the actual column name for a filter.
+     *
+     * Handles relationship filters by checking for _id suffix.
+     */
+    protected function resolveColumnName(string $table, string $filterName): ?string
+    {
+        // First check if the filter name is a direct column
+        if (\Illuminate\Support\Facades\Schema::hasColumn($table, $filterName)) {
+            return $filterName;
+        }
+
+        // Check if it's a relationship filter (filterName + '_id')
+        $relationshipColumn = $filterName.'_id';
+        if (\Illuminate\Support\Facades\Schema::hasColumn($table, $relationshipColumn)) {
+            return $relationshipColumn;
+        }
+
+        // Column doesn't exist
+        return null;
+    }
+
+    /**
+     * Send notification to user when export completes.
+     */
+    protected function sendCompletionNotification(string $filePath, string $disk, int $totalRecords): void
+    {
+        if (! $this->userId) {
+            Log::info('Export Job: No user ID provided, skipping notification');
+
+            return;
+        }
+
+        // Get the user model class from config or default to App\Models\User
+        $userModel = config('advanced-export.user_model', 'App\\Models\\User');
+
+        $user = $userModel::find($this->userId);
+
+        if (! $user) {
+            Log::warning("Export Job: User not found with ID {$this->userId}");
+
+            return;
+        }
+
+        // Generate download URL
+        $downloadUrl = Storage::disk($disk)->url($filePath);
+
+        // Get translations
+        $title = __('advanced-export::messages.notification.export_complete');
+        $body = __('advanced-export::messages.notification.export_body', [
+            'records' => number_format($totalRecords),
+            'filename' => $this->fileName,
+        ]);
+        $downloadLabel = __('advanced-export::messages.notification.download');
+
+        Notification::make()
+            ->title($title)
+            ->body($body)
+            ->success()
+            ->actions([
+                Action::make('download')
+                    ->label($downloadLabel)
+                    ->url($downloadUrl, shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ])
+            ->sendToDatabase($user);
+
+        Log::info("Export Job: Notification sent to user {$this->userId}");
     }
 
     /**
@@ -204,5 +294,36 @@ class ProcessExportJob implements ShouldQueue
             'model' => $this->modelClass,
             'fileName' => $this->fileName,
         ]);
+
+        // Send failure notification to user
+        $this->sendFailureNotification($exception);
+    }
+
+    /**
+     * Send notification to user when export fails.
+     */
+    protected function sendFailureNotification(\Throwable $exception): void
+    {
+        if (! $this->userId) {
+            return;
+        }
+
+        $userModel = config('advanced-export.user_model', 'App\\Models\\User');
+        $user = $userModel::find($this->userId);
+
+        if (! $user) {
+            return;
+        }
+
+        $title = __('advanced-export::messages.notification.export_failed');
+        $body = __('advanced-export::messages.notification.export_failed_body', [
+            'filename' => $this->fileName,
+        ]);
+
+        Notification::make()
+            ->title($title)
+            ->body($body)
+            ->danger()
+            ->sendToDatabase($user);
     }
 }

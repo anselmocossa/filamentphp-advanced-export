@@ -428,9 +428,76 @@ php artisan export:publish --lang
 
 Then create `resources/lang/vendor/advanced-export/{locale}/messages.php`.
 
-## Background Processing
+## Background Processing with Notifications
 
-For exports exceeding the `queue_threshold` (default: 2000 records), you can use the `ProcessExportJob`:
+The package includes a powerful background export feature with automatic database notifications. This is ideal for large exports that would otherwise timeout.
+
+### Using Background Export Action
+
+Add the background export action to your ListRecords page:
+
+```php
+use Filament\AdvancedExport\Traits\HasAdvancedExport;
+
+class ListDeclarations extends ListRecords
+{
+    use HasAdvancedExport;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->getAdvancedExportHeaderAction(),      // Synchronous export
+            $this->getBackgroundExportAction(),          // Background export with notifications
+            CreateAction::make(),
+        ];
+    }
+}
+```
+
+### How It Works
+
+1. User clicks "Background Export" button
+2. A confirmation modal appears
+3. Upon confirmation, `ProcessExportJob` is dispatched to the queue
+4. User sees a notification that the export is being processed
+5. When complete, a **database notification** appears with a download link
+6. If the export fails, a failure notification is sent
+
+### Requirements for Database Notifications
+
+Make sure your Filament panel has database notifications enabled:
+
+```php
+// app/Providers/Filament/AdminPanelProvider.php
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        ->default()
+        ->id('admin')
+        ->databaseNotifications()  // Enable this!
+        // ...
+}
+```
+
+### Running the Queue Workers
+
+Background exports require queue workers. Run both the exports queue and the default queue (for notifications):
+
+```bash
+# In separate terminals or using a process manager like Supervisor:
+php artisan queue:work --queue=exports
+php artisan queue:work --queue=default
+```
+
+Or use a single worker for both:
+
+```bash
+php artisan queue:work --queue=exports,default
+```
+
+### Dispatching Exports Programmatically
+
+You can also dispatch exports directly:
 
 ```php
 use Filament\AdvancedExport\Jobs\ProcessExportJob;
@@ -444,15 +511,30 @@ ProcessExportJob::dispatch(
     orderColumn: 'created_at',
     orderDirection: 'desc',
     relationships: ['tipoCliente', 'provincia'],
-    userId: auth()->id()
+    userId: auth()->id()  // Required for notifications
 );
 ```
 
-Make sure to run the queue worker:
+### Configuring the User Model
 
-```bash
-php artisan queue:work --queue=exports
+If you use a custom user model, configure it in `config/advanced-export.php`:
+
+```php
+'user_model' => App\Models\User::class,
 ```
+
+### Filter Support in Background Exports
+
+Background exports fully support all filter types:
+
+| Filter Type | Automatically Handled |
+|-------------|----------------------|
+| Direct columns | `status`, `type` |
+| Relationship filters | `insurer` → `insurer_id` |
+| Date ranges | `created_at[from/until]` |
+| Multiple values | `status[values][0,1,2]` |
+
+The `ProcessExportJob` automatically resolves relationship filter names to their actual column names (e.g., `insurer` → `insurer_id`).
 
 ## Customizing the Export Button
 

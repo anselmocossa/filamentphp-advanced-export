@@ -3,7 +3,7 @@
 namespace Filament\AdvancedExport\Exports;
 
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromView;
 
 /**

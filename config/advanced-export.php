@@ -149,4 +149,15 @@ return [
         'show_no_data' => true,
         'show_errors' => true,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | User Model
+    |--------------------------------------------------------------------------
+    |
+    | The user model class used for sending database notifications.
+    | This is used by ProcessExportJob to find and notify users.
+    |
+    */
+    'user_model' => env('AUTH_MODEL', 'App\\Models\\User'),
 ];
