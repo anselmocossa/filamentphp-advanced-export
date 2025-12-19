@@ -4,6 +4,14 @@ All notable changes to `filament-advanced-export` will be documented in this fil
 
 ## [Unreleased]
 
+## [v0.1.0] - 2025-12-19
+
+### Added
+- Initial release.
+
+### Fixed
+- Fix README code block formatting for the eager loading example.
+
 ## [1.1.0] - 2025-12-19
 
 ### Added

@@ -316,6 +316,7 @@ class ListDeclarations extends ListRecords
         return ['insurer', 'payments', 'createdBy'];
     }
 }
+```
 
 ### Custom Ordering
 
