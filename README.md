@@ -536,6 +536,189 @@ Background exports fully support all filter types:
 
 The `ProcessExportJob` automatically resolves relationship filter names to their actual column names (e.g., `insurer` → `insurer_id`).
 
+## Customizing Blade Views
+
+The package uses Blade views to render Excel exports. You can customize these views to format data, add styling, or handle special fields.
+
+### View Types
+
+| Type | Generated File | Purpose |
+|------|----------------|---------|
+| Simple | `{table}-excel.blade.php` | Exports all model attributes automatically |
+| Advanced | `{table}-excel-advanced.blade.php` | Exports only user-selected columns with custom titles |
+
+### View Variables
+
+Both views receive these variables:
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `${tableName}` | Collection | The records to export (e.g., `$declarations`) |
+| `$columnsConfig` | array | User-selected columns with titles (advanced only) |
+
+### Basic View Structure
+
+```blade
+@php use Carbon\Carbon; @endphp
+<table>
+    <thead>
+    <tr>
+        @foreach($columnsConfig as $columnConfig)
+            <th>{{ $columnConfig['title'] ?? 'Untitled' }}</th>
+        @endforeach
+    </tr>
+    </thead>
+    <tbody>
+    @foreach($declarations as $declaration)
+        <tr>
+            @foreach($columnsConfig as $columnConfig)
+                @php $field = $columnConfig['field'] ?? ''; @endphp
+                <td>
+                    @switch($field)
+                        {{-- Custom field handling here --}}
+                        @default
+                            {{ $declaration->{$field} ?? '-' }}
+                    @endswitch
+                </td>
+            @endforeach
+        </tr>
+    @endforeach
+    </tbody>
+</table>
+```
+
+### Custom Field Formatting
+
+Use `@switch` statements to format specific fields:
+
+```blade
+@switch($field)
+    {{-- Date formatting --}}
+    @case('created_at')
+        {{ $record->created_at?->format('d/m/Y H:i') ?? '-' }}
+        @break
+
+    {{-- Relationship data --}}
+    @case('insurer')
+        {{ $record->insurer->name ?? '-' }}
+        @break
+
+    {{-- Currency formatting --}}
+    @case('amount')
+        {{ number_format($record->amount, 2, ',', '.') }}
+        @break
+
+    {{-- Boolean values --}}
+    @case('is_active')
+        {{ $record->is_active ? 'Yes' : 'No' }}
+        @break
+
+    {{-- Enum/Status with translation --}}
+    @case('status')
+        {{ __("statuses.{$record->status}") }}
+        @break
+
+    {{-- Nested relationships --}}
+    @case('client.province')
+        {{ $record->client?->province?->name ?? '-' }}
+        @break
+
+    @default
+        {{ $record->{$field} ?? '-' }}
+@endswitch
+```
+
+### Complete Custom View Example
+
+Here's a full example for a `declarations` export:
+
+```blade
+{{-- resources/views/exports/declarations-excel-advanced.blade.php --}}
+@php use Carbon\Carbon; @endphp
+<table>
+    <thead>
+    <tr>
+        @foreach($columnsConfig as $columnConfig)
+            <th>{{ $columnConfig['title'] ?? __('advanced-export::messages.undefined_title') }}</th>
+        @endforeach
+    </tr>
+    </thead>
+    <tbody>
+    @foreach($declarations as $declaration)
+        <tr>
+            @foreach($columnsConfig as $columnConfig)
+                @php $field = $columnConfig['field'] ?? ''; @endphp
+                <td>
+                    @switch($field)
+                        @case('id')
+                            {{ $declaration->id ?? '-' }}
+                            @break
+                        @case('declaration_number')
+                            {{ $declaration->declaration_number ?? '-' }}
+                            @break
+                        @case('insurer')
+                            {{ $declaration->insurer->name ?? '-' }}
+                            @break
+                        @case('cif_value')
+                            {{ number_format($declaration->cif_value ?? 0, 2, ',', '.') }}
+                            @break
+                        @case('status')
+                            {{ ucfirst($declaration->status ?? '-') }}
+                            @break
+                        @case('created_at')
+                            {{ $declaration->created_at?->format('d/m/Y H:i') ?? '-' }}
+                            @break
+                        @default
+                            {{ $declaration->{$field} ?? '-' }}
+                    @endswitch
+                </td>
+            @endforeach
+        </tr>
+    @endforeach
+    </tbody>
+</table>
+```
+
+### Using Package Default Views
+
+If you don't need custom formatting, enable the package's default views:
+
+```php
+// config/advanced-export.php
+'views' => [
+    'use_package_views' => true,
+],
+```
+
+The default views automatically:
+- Format dates using `config('advanced-export.date_format')`
+- Handle null values with `-`
+- Convert booleans to Yes/No
+- Serialize arrays/objects to JSON
+
+### Styling Excel Output
+
+Maatwebsite Excel supports basic HTML styling:
+
+```blade
+<table>
+    <thead>
+    <tr style="background-color: #4CAF50; color: white; font-weight: bold;">
+        @foreach($columnsConfig as $columnConfig)
+            <th>{{ $columnConfig['title'] }}</th>
+        @endforeach
+    </tr>
+    </thead>
+    <tbody>
+    @foreach($records as $record)
+        <tr style="{{ $loop->even ? 'background-color: #f2f2f2;' : '' }}">
+            {{-- cells --}}
+        </tr>
+    @endforeach
+    </tbody>
+</table>
+```
+
 ## Customizing the Export Button
 
 Override trait methods to customize appearance:
