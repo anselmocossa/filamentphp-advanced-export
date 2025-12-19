@@ -263,11 +263,48 @@ return [
 ];
 ```
 
+## Screenshots
+
+### Export Modal
+![Export Modal](docs/export-modal-collapsed.png)
+
 ## Advanced Usage
 
-### Custom Relationships
+### Relationship Columns
 
-Load relationships for export (useful for related data like `insurer.name`):
+You can export relationship data simply by using the relationship name as the column key:
+
+```php
+public static function getExportColumns(): array
+{
+    return [
+        'id' => 'ID',
+        'declaration_number' => 'Declaration Number',
+        'insurer' => 'Insurer',  // Will automatically load the relationship
+        'status' => 'Status',
+    ];
+}
+```
+
+The package will automatically detect and load the relationship, displaying the related model's default display value.
+
+For more specific relationship data (like a specific attribute), use dot notation:
+
+```php
+public static function getExportColumns(): array
+{
+    return [
+        'id' => 'ID',
+        'insurer.name' => 'Insurer Name',      // Specific attribute
+        'insurer.nuit' => 'Insurer NUIT',      // Another attribute
+        'status' => 'Status',
+    ];
+}
+```
+
+### Eager Loading Relationships
+
+To optimize performance, specify relationships to eager load:
 
 ```php
 class ListDeclarations extends ListRecords
@@ -279,21 +316,6 @@ class ListDeclarations extends ListRecords
         return ['insurer', 'payments', 'createdBy'];
     }
 }
-```
-
-Then in your model's `getExportColumns()`:
-
-```php
-public static function getExportColumns(): array
-{
-    return [
-        'id' => 'ID',
-        'declaration_number' => 'Declaration Number',
-        'insurer.name' => 'Insurer Name',  // Relationship column
-        'status' => 'Status',
-    ];
-}
-```
 
 ### Custom Ordering
 
