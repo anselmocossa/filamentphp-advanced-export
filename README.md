@@ -761,7 +761,7 @@ Contributions are welcome! Please see [CONTRIBUTING](CONTRIBUTING.md) for detail
 
 ## Security
 
-If you discover any security-related issues, please email security@example.com instead of using the issue tracker.
+If you discover any security-related issues, please email anselmokossa.apk@gmail.com instead of using the issue tracker.
 
 ## Credits
 
