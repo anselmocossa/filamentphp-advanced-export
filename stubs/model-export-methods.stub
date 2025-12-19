@@ -1,0 +1,24 @@
+
+    /**
+     * Get all available columns for export.
+     *
+     * @return array<string, string>
+     */
+    public static function getExportColumns(): array
+    {
+        return [
+{{COLUMNS}}
+        ];
+    }
+
+    /**
+     * Get default columns selected in export form.
+     *
+     * @return array<array{field: string, title: string}>
+     */
+    public static function getDefaultExportColumns(): array
+    {
+        return [
+{{DEFAULT_COLUMNS}}
+        ];
+    }

@@ -1,0 +1,26 @@
+@php use Carbon\Carbon; @endphp
+<table>
+    <thead>
+    <tr>
+        @foreach($columnsConfig as $columnConfig)
+            <th>{{ $columnConfig['title'] ?? __('advanced-export::messages.undefined_title') }}</th>
+        @endforeach
+    </tr>
+    </thead>
+    <tbody>
+    @foreach(${{TABLE_NAME}} as ${{VARIABLE_NAME}})
+        <tr>
+            @foreach($columnsConfig as $columnConfig)
+                @php $field = $columnConfig['field'] ?? ''; @endphp
+                <td>
+                    @switch($field)
+{{SWITCH_CASES}}
+                        @default
+                            {{ ${{VARIABLE_NAME}}->{$field} ?? '-' }}
+                    @endswitch
+                </td>
+            @endforeach
+        </tr>
+    @endforeach
+    </tbody>
+</table>

@@ -1,0 +1,15 @@
+@php use Carbon\Carbon; @endphp
+<table>
+    <thead>
+    <tr>
+{{HEADERS}}
+    </tr>
+    </thead>
+    <tbody>
+    @foreach(${{TABLE_NAME}} as ${{VARIABLE_NAME}})
+        <tr>
+{{CELLS}}
+        </tr>
+    @endforeach
+    </tbody>
+</table>
