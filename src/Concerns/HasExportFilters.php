@@ -4,6 +4,7 @@ namespace Filament\AdvancedExport\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Provides filter extraction and application methods for export functionality.
@@ -188,7 +189,62 @@ trait HasExportFilters
      */
     protected function applyCustomFilter(Builder $query, string $filterName, mixed $filterValue): void
     {
-        // Override this method in the class using the trait to handle specific filters
+        // Apply generic filters automatically based on column existence
+        $this->applyGenericFilter($query, $filterName, $filterValue);
+    }
+
+    /**
+     * Apply generic filter based on column name and value type.
+     *
+     * This handles common filter patterns like status, type, etc.
+     */
+    protected function applyGenericFilter(Builder $query, string $filterName, mixed $filterValue): void
+    {
+        // Skip if filter value is empty
+        if (is_null($filterValue) || $filterValue === '' || $filterValue === []) {
+            return;
+        }
+
+        // Get the model to check if column exists
+        $model = $query->getModel();
+        $table = $model->getTable();
+
+        // Check if the column exists in the table
+        if (! \Schema::hasColumn($table, $filterName)) {
+            return;
+        }
+
+        // Handle array of values (whereIn)
+        if (is_array($filterValue) && ! $this->isAssociativeArray($filterValue)) {
+            $normalizedValues = $this->normalizeFilterValue($filterValue);
+            if (! empty($normalizedValues)) {
+                $query->whereIn($filterName, $normalizedValues);
+            }
+
+            return;
+        }
+
+        // Handle single value
+        if (is_string($filterValue) || is_numeric($filterValue) || is_bool($filterValue)) {
+            $query->where($filterName, $filterValue);
+
+            return;
+        }
+
+        // Handle associative array with 'value' key
+        if (is_array($filterValue) && isset($filterValue['value'])) {
+            $query->where($filterName, $filterValue['value']);
+
+            return;
+        }
+
+        // Handle associative array with 'values' key
+        if (is_array($filterValue) && isset($filterValue['values'])) {
+            $normalizedValues = $this->normalizeFilterValue($filterValue['values']);
+            if (! empty($normalizedValues)) {
+                $query->whereIn($filterName, $normalizedValues);
+            }
+        }
     }
 
     /**
