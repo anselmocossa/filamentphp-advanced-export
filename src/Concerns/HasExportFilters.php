@@ -197,6 +197,7 @@ trait HasExportFilters
      * Apply generic filter based on column name and value type.
      *
      * This handles common filter patterns like status, type, etc.
+     * Also supports relationship filters (e.g., 'insurer' -> 'insurer_id').
      */
     protected function applyGenericFilter(Builder $query, string $filterName, mixed $filterValue): void
     {
@@ -209,16 +210,25 @@ trait HasExportFilters
         $model = $query->getModel();
         $table = $model->getTable();
 
-        // Check if the column exists in the table
-        if (! \Schema::hasColumn($table, $filterName)) {
-            return;
+        // Determine the actual column name
+        // First check if the filter name is a direct column
+        // If not, check if it's a relationship filter (filterName + '_id')
+        $columnName = $filterName;
+        if (! Schema::hasColumn($table, $filterName)) {
+            $relationshipColumn = $filterName . '_id';
+            if (Schema::hasColumn($table, $relationshipColumn)) {
+                $columnName = $relationshipColumn;
+            } else {
+                // Column doesn't exist, skip this filter
+                return;
+            }
         }
 
         // Handle array of values (whereIn)
         if (is_array($filterValue) && ! $this->isAssociativeArray($filterValue)) {
             $normalizedValues = $this->normalizeFilterValue($filterValue);
             if (! empty($normalizedValues)) {
-                $query->whereIn($filterName, $normalizedValues);
+                $query->whereIn($columnName, $normalizedValues);
             }
 
             return;
@@ -226,14 +236,14 @@ trait HasExportFilters
 
         // Handle single value
         if (is_string($filterValue) || is_numeric($filterValue) || is_bool($filterValue)) {
-            $query->where($filterName, $filterValue);
+            $query->where($columnName, $filterValue);
 
             return;
         }
 
         // Handle associative array with 'value' key
         if (is_array($filterValue) && isset($filterValue['value'])) {
-            $query->where($filterName, $filterValue['value']);
+            $query->where($columnName, $filterValue['value']);
 
             return;
         }
@@ -242,7 +252,7 @@ trait HasExportFilters
         if (is_array($filterValue) && isset($filterValue['values'])) {
             $normalizedValues = $this->normalizeFilterValue($filterValue['values']);
             if (! empty($normalizedValues)) {
-                $query->whereIn($filterName, $normalizedValues);
+                $query->whereIn($columnName, $normalizedValues);
             }
         }
     }
