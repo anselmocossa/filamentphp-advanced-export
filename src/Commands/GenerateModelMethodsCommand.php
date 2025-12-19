@@ -164,18 +164,25 @@ class GenerateModelMethodsCommand extends Command
                 $imports .= "use Filament\\AdvancedExport\\Traits\\InteractsWithExportable;\n";
             }
 
-            // Find the last use statement or namespace and add after it
-            if (preg_match('/^(.*?)(use [^;]+;\s*)(\n)/sm', $content, $matches)) {
-                // Find position after last use statement
-                $lastUsePos = strrpos($content, "use ");
-                if ($lastUsePos !== false) {
-                    $endOfLine = strpos($content, "\n", $lastUsePos);
-                    if ($endOfLine !== false) {
-                        $content = substr($content, 0, $endOfLine + 1) . $imports . substr($content, $endOfLine + 1);
-                    }
+            // Find the position of the class declaration to ensure we only look at imports before it
+            $classPos = strpos($content, "\nclass ");
+            if ($classPos === false) {
+                $classPos = strlen($content);
+            }
+
+            // Get content before the class
+            $beforeClass = substr($content, 0, $classPos);
+
+            // Find the last use statement before the class (import, not trait)
+            $lastImportPos = strrpos($beforeClass, "\nuse ");
+            if ($lastImportPos !== false) {
+                // Find the end of that line
+                $endOfLine = strpos($content, "\n", $lastImportPos + 1);
+                if ($endOfLine !== false) {
+                    $content = substr($content, 0, $endOfLine + 1) . $imports . substr($content, $endOfLine + 1);
                 }
             } else {
-                // Add after namespace
+                // No imports found, add after namespace
                 $content = preg_replace(
                     '/(namespace [^;]+;)/',
                     "$1\n\n" . rtrim($imports),
