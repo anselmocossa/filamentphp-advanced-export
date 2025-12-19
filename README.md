@@ -8,10 +8,11 @@ Advanced export functionality for Filament resources with dynamic column selecti
 
 ## Features
 
+- **One-Command Setup** - Configure export for any resource with a single command
 - **Dynamic Column Selection** - Users choose which columns to export
 - **Custom Column Titles** - Rename columns in the exported file
 - **Configurable Ordering** - Sort by any column, ascending or descending
-- **Filter Support** - Respects active Filament table filters
+- **Automatic Filter Support** - Automatically respects active Filament table filters
 - **Background Processing** - Queue large exports for async processing
 - **View-Based Templates** - Customizable Blade views for export formatting
 - **Bilingual Support** - English and Portuguese translations included
@@ -66,9 +67,39 @@ php artisan export:publish --all
 
 ## Quick Start
 
-### 1. Implement the Exportable Interface
+### Option 1: One-Command Setup (Recommended)
 
-Add the `Exportable` interface and required methods to your model:
+The fastest way to add export functionality to any Filament resource:
+
+```bash
+php artisan export:resource "App\Filament\Resources\ClienteResource"
+```
+
+This single command will:
+1. **Configure the Model** - Add `Exportable` interface, trait, and export methods
+2. **Generate Views** - Create both simple and advanced export Blade templates
+3. **Update ListRecords** - Add the `HasAdvancedExport` trait and export action
+
+That's it! Your resource now has full export functionality.
+
+#### Options
+
+```bash
+# Force overwrite existing files
+php artisan export:resource "App\Filament\Resources\ClienteResource" --force
+```
+
+### Option 2: Step-by-Step Setup
+
+If you prefer more control, you can set up each component individually:
+
+#### 1. Configure the Model
+
+```bash
+php artisan export:model App\\Models\\Cliente
+```
+
+Or manually add the interface and methods:
 
 ```php
 <?php
@@ -90,9 +121,8 @@ class Cliente extends Model implements Exportable
             'nome' => 'Name',
             'email' => 'Email',
             'telefone' => 'Phone',
-            'estado' => 'Status',
+            'status' => 'Status',
             'created_at' => 'Created At',
-            'updated_at' => 'Updated At',
         ];
     }
 
@@ -102,22 +132,23 @@ class Cliente extends Model implements Exportable
             ['field' => 'id', 'title' => 'ID'],
             ['field' => 'nome', 'title' => 'Full Name'],
             ['field' => 'email', 'title' => 'Email Address'],
-            ['field' => 'estado', 'title' => 'Status'],
-            ['field' => 'created_at', 'title' => 'Registration Date'],
+            ['field' => 'status', 'title' => 'Status'],
         ];
     }
 }
 ```
 
-Or use the Artisan command to generate methods automatically:
+#### 2. Generate Export Views
 
 ```bash
-php artisan export:model App\\Models\\Cliente
+php artisan export:views App\\Models\\Cliente
 ```
 
-### 2. Use the Trait in ListRecords
+This creates:
+- `resources/views/exports/clientes-excel.blade.php` (simple export)
+- `resources/views/exports/clientes-excel-advanced.blade.php` (advanced export)
 
-Add the `HasAdvancedExport` trait to your ListRecords page:
+#### 3. Add Trait to ListRecords
 
 ```php
 <?php
@@ -145,17 +176,44 @@ class ListClientes extends ListRecords
 }
 ```
 
-### 3. Generate Export Views
+## Automatic Filter Support
 
-Generate the Blade views for your model:
+One of the key features of this package is **automatic filter support**. When users apply filters to your Filament table (e.g., `?filters[status][values][0]=pending`), the export will automatically respect those filters.
 
-```bash
-php artisan export:views App\\Models\\Cliente
+### How It Works
+
+The package automatically:
+1. Extracts all active filters from the Filament table
+2. Checks if the filter column exists in the database table
+3. Applies the appropriate `WHERE` or `WHERE IN` clause
+
+### Supported Filter Types
+
+| Filter Type | Example URL | Query Applied |
+|-------------|-------------|---------------|
+| Single value | `?filters[status][value]=active` | `WHERE status = 'active'` |
+| Multiple values | `?filters[status][values][0]=pending&filters[status][values][1]=active` | `WHERE status IN ('pending', 'active')` |
+| Date range | `?filters[created_at][from]=2024-01-01&filters[created_at][until]=2024-12-31` | `WHERE created_at BETWEEN ...` |
+
+### Custom Filter Handling
+
+For complex filters that don't map directly to columns, override the `applyCustomFilter` method:
+
+```php
+class ListClientes extends ListRecords
+{
+    use HasAdvancedExport;
+
+    protected function applyCustomFilter($query, string $filterName, mixed $filterValue): void
+    {
+        match ($filterName) {
+            'has_orders' => $query->whereHas('orders'),
+            'premium_customer' => $query->where('total_spent', '>', 10000),
+            default => $this->applyGenericFilter($query, $filterName, $filterValue),
+        };
+    }
+}
 ```
-
-This creates two files:
-- `resources/views/exports/clientes-excel.blade.php` (simple export)
-- `resources/views/exports/clientes-excel-advanced.blade.php` (advanced export)
 
 ## Configuration
 
@@ -175,7 +233,7 @@ return [
         'path' => 'exports',
         'simple_suffix' => '-excel',
         'advanced_suffix' => '-excel-advanced',
-        'use_package_views' => false, // Use default package views
+        'use_package_views' => false,
     ],
 
     // Date formatting
@@ -191,7 +249,7 @@ return [
     // Action button appearance
     'action' => [
         'name' => 'export',
-        'label' => null, // Uses translation
+        'label' => null,
         'icon' => 'heroicon-o-arrow-down-tray',
         'color' => 'success',
     ],
@@ -209,38 +267,31 @@ return [
 
 ### Custom Relationships
 
-Load relationships for export:
+Load relationships for export (useful for related data like `insurer.name`):
 
 ```php
-class ListClientes extends ListRecords
+class ListDeclarations extends ListRecords
 {
     use HasAdvancedExport;
 
     protected function getExportRelationshipsForModel(): array
     {
-        return ['localizacoes', 'createdBy', 'tipoCliente'];
+        return ['insurer', 'payments', 'createdBy'];
     }
 }
 ```
 
-### Custom Filter Handling
-
-Handle resource-specific filters:
+Then in your model's `getExportColumns()`:
 
 ```php
-class ListClientes extends ListRecords
+public static function getExportColumns(): array
 {
-    use HasAdvancedExport;
-
-    protected function applyCustomFilter($query, string $filterName, mixed $filterValue): void
-    {
-        match ($filterName) {
-            'tipo_cliente' => $query->where('tipo_cliente', $filterValue),
-            'estado' => $query->where('estado', $filterValue),
-            'provincia_id' => $query->whereIn('provincia_id', $this->normalizeFilterValue($filterValue)),
-            default => null,
-        };
-    }
+    return [
+        'id' => 'ID',
+        'declaration_number' => 'Declaration Number',
+        'insurer.name' => 'Insurer Name',  // Relationship column
+        'status' => 'Status',
+    ];
 }
 ```
 
@@ -255,9 +306,9 @@ class ListClientes extends ListRecords
 
     protected function applyCustomOrdering($query, string $orderColumn, string $orderDirection): void
     {
-        if ($orderColumn === 'tipo_cliente_nome') {
-            $query->join('tipo_clientes', 'clientes.tipo_cliente_id', '=', 'tipo_clientes.id')
-                  ->orderBy('tipo_clientes.nome', $orderDirection);
+        if ($orderColumn === 'insurer_name') {
+            $query->join('insurers', 'declarations.insurer_id', '=', 'insurers.id')
+                  ->orderBy('insurers.name', $orderDirection);
             return;
         }
 
@@ -279,6 +330,25 @@ If you don't want to create custom views for each model:
 
 ## Artisan Commands
 
+### `export:resource` (Recommended)
+
+Complete setup for a Filament resource in one command:
+
+```bash
+# Basic usage
+php artisan export:resource "App\Filament\Resources\ClienteResource"
+
+# Force overwrite existing files
+php artisan export:resource "App\Filament\Resources\ClienteResource" --force
+```
+
+This command:
+- Detects the model from the resource's `$model` property
+- Finds the ListRecords page from `getPages()`
+- Runs `export:model` to configure the model
+- Runs `export:views` to generate Blade templates
+- Updates the ListRecords page with the trait and action
+
 ### `export:install`
 
 Initial package setup:
@@ -289,15 +359,6 @@ php artisan export:install --panel=admin
 php artisan export:install --no-interaction
 ```
 
-### `export:views`
-
-Generate export views for a model:
-
-```bash
-php artisan export:views App\\Models\\Cliente
-php artisan export:views App\\Models\\Cliente --force
-```
-
 ### `export:model`
 
 Add export methods to a model:
@@ -306,6 +367,15 @@ Add export methods to a model:
 php artisan export:model App\\Models\\Cliente
 php artisan export:model App\\Models\\Cliente --columns=id,nome,email,created_at
 php artisan export:model App\\Models\\Cliente --force
+```
+
+### `export:views`
+
+Generate export views for a model:
+
+```bash
+php artisan export:views App\\Models\\Cliente
+php artisan export:views App\\Models\\Cliente --force
 ```
 
 ### `export:publish`
