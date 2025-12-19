@@ -93,6 +93,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Background Export Action
+    |--------------------------------------------------------------------------
+    */
+    'background' => [
+        'action_label' => 'Background Export',
+        'modal_heading' => 'Background Export',
+        'modal_description' => 'The export will be processed in the background. You will receive a notification when the file is ready for download.',
+        'dispatched_title' => 'Export Started',
+        'dispatched_body' => 'Your export is being processed. You will receive a notification when it is ready.',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | General
     |--------------------------------------------------------------------------
     */

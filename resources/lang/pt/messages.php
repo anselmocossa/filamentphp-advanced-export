@@ -93,6 +93,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Background Export Action
+    |--------------------------------------------------------------------------
+    */
+    'background' => [
+        'action_label' => 'Exportar em Segundo Plano',
+        'modal_heading' => 'Exportar em Segundo Plano',
+        'modal_description' => 'A exportação será processada em segundo plano. Você receberá uma notificação quando o arquivo estiver pronto para download.',
+        'dispatched_title' => 'Exportação Iniciada',
+        'dispatched_body' => 'Sua exportação está sendo processada. Você receberá uma notificação quando estiver pronta.',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | General
     |--------------------------------------------------------------------------
     */
