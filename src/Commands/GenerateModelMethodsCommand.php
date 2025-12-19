@@ -148,41 +148,80 @@ class GenerateModelMethodsCommand extends Command
     {
         $content = $this->files->get($filePath);
 
-        // Add Exportable interface
-        $interfaceImport = 'use Filament\\AdvancedExport\\Contracts\\Exportable;';
-        $traitImport = 'use Filament\\AdvancedExport\\Traits\\InteractsWithExportable;';
+        // Check what already exists
+        $hasExportableImport = Str::contains($content, 'Filament\\AdvancedExport\\Contracts\\Exportable');
+        $hasTraitImport = Str::contains($content, 'Filament\\AdvancedExport\\Traits\\InteractsWithExportable');
+        $implementsExportable = (bool) preg_match('/implements\s+[^{]*\bExportable\b/', $content);
+        $usesExportableTrait = Str::contains($content, 'InteractsWithExportable');
 
-        if (! Str::contains($content, $interfaceImport)) {
-            $content = preg_replace(
-                '/(namespace [^;]+;)/',
-                "$1\n\n{$interfaceImport}\n{$traitImport}",
-                $content
-            );
+        // Add imports if needed
+        if (! $hasExportableImport || ! $hasTraitImport) {
+            $imports = '';
+            if (! $hasExportableImport) {
+                $imports .= "use Filament\\AdvancedExport\\Contracts\\Exportable;\n";
+            }
+            if (! $hasTraitImport) {
+                $imports .= "use Filament\\AdvancedExport\\Traits\\InteractsWithExportable;\n";
+            }
+
+            // Find the last use statement or namespace and add after it
+            if (preg_match('/^(.*?)(use [^;]+;\s*)(\n)/sm', $content, $matches)) {
+                // Find position after last use statement
+                $lastUsePos = strrpos($content, "use ");
+                if ($lastUsePos !== false) {
+                    $endOfLine = strpos($content, "\n", $lastUsePos);
+                    if ($endOfLine !== false) {
+                        $content = substr($content, 0, $endOfLine + 1) . $imports . substr($content, $endOfLine + 1);
+                    }
+                }
+            } else {
+                // Add after namespace
+                $content = preg_replace(
+                    '/(namespace [^;]+;)/',
+                    "$1\n\n" . rtrim($imports),
+                    $content
+                );
+            }
         }
 
-        // Add implements Exportable
-        if (! Str::contains($content, 'implements Exportable')) {
-            $content = preg_replace(
-                '/(class\s+\w+\s+extends\s+\w+)(\s*\{)/s',
-                '$1 implements Exportable$2',
-                $content
-            );
-
-            // Also handle case where class already implements something
-            $content = preg_replace(
-                '/(class\s+\w+\s+extends\s+\w+\s+implements\s+)([^\{]+)(\{)/s',
-                '$1$2, Exportable$3',
-                $content
-            );
+        // Add implements Exportable if not present
+        if (! $implementsExportable) {
+            // Check if class already implements something
+            if (preg_match('/(class\s+\w+\s+extends\s+\w+\s+implements\s+)([^\{]+)(\{)/s', $content)) {
+                // Already has implements, add Exportable to the list
+                $content = preg_replace(
+                    '/(class\s+\w+\s+extends\s+\w+\s+implements\s+)([^\{]+)(\{)/s',
+                    '$1$2, Exportable $3',
+                    $content
+                );
+            } else {
+                // No implements yet, add it
+                $content = preg_replace(
+                    '/(class\s+\w+\s+extends\s+\w+)(\s*\{)/s',
+                    '$1 implements Exportable$2',
+                    $content
+                );
+            }
         }
 
-        // Add InteractsWithExportable trait
-        if (! Str::contains($content, 'use InteractsWithExportable')) {
-            $content = preg_replace(
-                '/(class\s+\w+[^{]+\{)/',
-                "$1\n    use InteractsWithExportable;\n",
-                $content
-            );
+        // Add InteractsWithExportable trait if not present
+        if (! $usesExportableTrait) {
+            // Find existing use statements in class and append
+            if (preg_match('/(class\s+\w+[^{]+\{\s*)(use\s+[^;]+;)/s', $content, $matches)) {
+                // Has existing traits, append to them
+                $content = preg_replace(
+                    '/(class\s+\w+[^{]+\{\s*)(use\s+)([^;]+)(;)/s',
+                    '$1$2$3, InteractsWithExportable$4',
+                    $content
+                );
+            } else {
+                // No traits yet, add after class opening
+                $content = preg_replace(
+                    '/(class\s+\w+[^{]+\{)/',
+                    "$1\n    use InteractsWithExportable;\n",
+                    $content
+                );
+            }
         }
 
         // Remove existing methods if replacing
