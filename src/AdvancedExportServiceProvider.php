@@ -6,6 +6,7 @@ use Filament\AdvancedExport\Commands\GenerateModelMethodsCommand;
 use Filament\AdvancedExport\Commands\GenerateViewsCommand;
 use Filament\AdvancedExport\Commands\InstallCommand;
 use Filament\AdvancedExport\Commands\PublishCommand;
+use Filament\AdvancedExport\Commands\SetupResourceExportCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -28,6 +29,7 @@ class AdvancedExportServiceProvider extends PackageServiceProvider
                 GenerateViewsCommand::class,
                 GenerateModelMethodsCommand::class,
                 PublishCommand::class,
+                SetupResourceExportCommand::class,
             ]);
     }
 
