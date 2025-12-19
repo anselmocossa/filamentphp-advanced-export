@@ -171,9 +171,13 @@ class SetupResourceExportCommand extends Command
             }
         }
 
-        // Add trait if needed
-        if (! preg_match('/use\s+[^;]*HasAdvancedExport[^;]*;/', $content)) {
-            // Check if class has existing traits
+        // Add trait if needed - check if trait is used INSIDE the class (not the import statement)
+        // The trait use statement must be after the class opening brace
+        $classMatch = preg_match('/class\s+\w+[^{]+\{(.*)$/s', $content, $classContent);
+        $hasTraitInClass = $classMatch && preg_match('/^\s*use\s+[^;]*HasAdvancedExport[^;]*;/m', $classContent[1]);
+
+        if (! $hasTraitInClass) {
+            // Check if class has existing traits (use statement right after class opening)
             if (preg_match('/(class\s+\w+[^{]+\{\s*)(use\s+[^;]+;)/s', $content)) {
                 // Has existing traits, append
                 $content = preg_replace(
