@@ -111,10 +111,12 @@ class GenerateViewsCommand extends Command
         $dateFormat = config('advanced-export.date_format', 'd/m/Y H:i');
 
         foreach ($columns as $field => $title) {
+            $accessor = $this->convertToRelationshipAccessor($field);
+
             if (in_array($field, ['created_at', 'updated_at'])) {
-                $cells .= "            <td>{{ \${$variableName}->{$field}?->format('{$dateFormat}') ?? '-' }}</td>\n";
+                $cells .= "            <td>{{ \${$variableName}->{$accessor}?->format('{$dateFormat}') ?? '-' }}</td>\n";
             } else {
-                $cells .= "            <td>{{ \${$variableName}->{$field} ?? '-' }}</td>\n";
+                $cells .= "            <td>{{ \${$variableName}->{$accessor} ?? '-' }}</td>\n";
             }
         }
 
@@ -141,11 +143,13 @@ class GenerateViewsCommand extends Command
         $dateFormat = config('advanced-export.date_format', 'd/m/Y H:i');
 
         foreach ($columns as $field => $title) {
+            $accessor = $this->convertToRelationshipAccessor($field);
+
             $switchCases .= "                        @case('{$field}')\n";
             if (in_array($field, ['created_at', 'updated_at'])) {
-                $switchCases .= "                            {{ \${$variableName}->{$field}?->format('{$dateFormat}') ?? '-' }}\n";
+                $switchCases .= "                            {{ \${$variableName}->{$accessor}?->format('{$dateFormat}') ?? '-' }}\n";
             } else {
-                $switchCases .= "                            {{ \${$variableName}->{$field} ?? '-' }}\n";
+                $switchCases .= "                            {{ \${$variableName}->{$accessor} ?? '-' }}\n";
             }
             $switchCases .= "                            @break\n";
         }
@@ -177,5 +181,24 @@ class GenerateViewsCommand extends Command
         if (! $this->files->isDirectory($path)) {
             $this->files->makeDirectory($path, 0755, true);
         }
+    }
+
+    /**
+     * Convert dot notation field to proper PHP relationship accessor syntax.
+     *
+     * Examples:
+     * - "name" => "name"
+     * - "payment.reference" => "payment?->reference"
+     * - "insurer.company.name" => "insurer?->company?->name"
+     */
+    protected function convertToRelationshipAccessor(string $field): string
+    {
+        if (! str_contains($field, '.')) {
+            return $field;
+        }
+
+        $parts = explode('.', $field);
+
+        return implode('?->', $parts);
     }
 }
