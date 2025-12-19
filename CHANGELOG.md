@@ -4,6 +4,11 @@ All notable changes to `filament-advanced-export` will be documented in this fil
 
 ## [Unreleased]
 
+## [v0.1.1] - 2025-12-19
+
+### Changed
+- Update security contact email in the README.
+
 ## [v0.1.0] - 2025-12-19
 
 ### Added
