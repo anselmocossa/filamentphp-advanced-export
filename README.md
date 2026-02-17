@@ -22,7 +22,7 @@ Advanced export functionality for Filament resources with dynamic column selecti
 
 - PHP 8.2+
 - Laravel 11.0+ or 12.0+
-- Filament 4.0+
+- Filament 4.0+ or 5.0+
 - Maatwebsite Excel 3.1+
 
 ## Installation
