@@ -34,13 +34,15 @@ trait HasExportQuery
 
     /**
      * Build the base query for export.
+     *
+     * Uses the resource's getEloquentQuery() to respect any scopes
+     * defined on the resource (e.g. filtering by role, tenant, etc.).
      */
     protected function buildExportQuery(array $activeFilters): Builder
     {
-        $modelClass = $this->getExportModel();
         $relationships = $this->getExportRelationships();
 
-        $query = $modelClass::query()->with($relationships);
+        $query = static::$resource::getEloquentQuery()->with($relationships);
         $this->applyFiltersToQuery($query, $activeFilters);
 
         return $query;

@@ -70,8 +70,8 @@ return [
     |
     */
     'columns' => [
-        'max_default' => 5,
-        'max_selectable' => 20,
+        'max_default' => 50,
+        'max_selectable' => 50,
         'min_required' => 1,
     ],
 
