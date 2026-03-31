@@ -118,6 +118,7 @@ trait HasAdvancedExport
                 ->addActionLabel(__('advanced-export::messages.form.columns.add'))
                 ->reorderable()
                 ->collapsible()
+                ->collapsed()
                 ->itemLabel(fn (array $state): ?string => $state['title'] ?? __('advanced-export::messages.form.columns.new'))
                 ->minItems($config->getMinRequiredColumns())
                 ->maxItems($config->getMaxSelectableColumns()),
