@@ -21,7 +21,7 @@ Advanced export functionality for Filament resources with dynamic column selecti
 ## Requirements
 
 - PHP 8.2+
-- Laravel 11.0+ or 12.0+
+- Laravel 11.0+, 12.0+ or 13.0+
 - Filament 4.0+ or 5.0+
 - Maatwebsite Excel 3.1+ or 4.0+
 
