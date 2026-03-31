@@ -2,7 +2,6 @@
 
 namespace Filament\AdvancedExport\Concerns;
 
-use Filament\AdvancedExport\Contracts\Exportable;
 use Filament\AdvancedExport\Support\ExportConfig;
 
 /**
@@ -187,7 +186,8 @@ trait HasExportConfiguration
     {
         return config('advanced-export.action.modal_description')
             ?? __('advanced-export::messages.modal.description', [
-                'limit' => $this->getExportLimit(),
+                'count' => number_format($this->getExportRecordCount()),
+                'limit' => number_format($this->getExportLimit()),
             ]);
     }
 

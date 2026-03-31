@@ -57,6 +57,9 @@ trait HasExportNotifications
 
     /**
      * Handle export errors with logging and notification.
+     *
+     * The full error message is logged internally for debugging.
+     * The user sees a generic error notification without sensitive details.
      */
     protected function handleExportError(Exception $e, string $context): void
     {
@@ -71,9 +74,7 @@ trait HasExportNotifications
 
         Notification::make()
             ->title(__('advanced-export::messages.notifications.error.title'))
-            ->body(__('advanced-export::messages.notifications.error.body', [
-                'message' => $e->getMessage(),
-            ]))
+            ->body(__('advanced-export::messages.notifications.error.body'))
             ->danger()
             ->send();
     }

@@ -96,19 +96,19 @@ trait HasExportFilters
     }
 
     /**
-     * Extract filters using fallback static filter names.
+     * Extract filters using fallback filter names from configuration.
+     *
+     * Override getFallbackFilterNames() in your ListRecords class to
+     * add resource-specific fallback filter names.
      *
      * @return array<string, mixed>
      */
     protected function extractFallbackFilters(): array
     {
         $activeFilters = [];
-        $staticFilterNames = [
-            'created_at', 'updated_at', 'cliente_id', 'numero_contador',
-            'estado_pagamento', 'estado_leitura', 'mes_referencia', 'ano_referencia',
-        ];
+        $filterNames = $this->getFallbackFilterNames();
 
-        foreach ($staticFilterNames as $filterName) {
+        foreach ($filterNames as $filterName) {
             try {
                 $filterState = $this->getTableFilterState($filterName);
                 if (! empty($filterState) && $filterState !== '' && $filterState !== []) {
@@ -120,6 +120,19 @@ trait HasExportFilters
         }
 
         return $activeFilters;
+    }
+
+    /**
+     * Get the fallback filter names used when dynamic extraction fails.
+     *
+     * Override this method in your ListRecords class to specify
+     * resource-specific fallback filter names.
+     *
+     * @return array<string>
+     */
+    protected function getFallbackFilterNames(): array
+    {
+        return $this->getExportConfig()->getFallbackFilterNames();
     }
 
     /**
@@ -215,7 +228,7 @@ trait HasExportFilters
         // If not, check if it's a relationship filter (filterName + '_id')
         $columnName = $filterName;
         if (! Schema::hasColumn($table, $filterName)) {
-            $relationshipColumn = $filterName . '_id';
+            $relationshipColumn = $filterName.'_id';
             if (Schema::hasColumn($table, $relationshipColumn)) {
                 $columnName = $relationshipColumn;
             } else {

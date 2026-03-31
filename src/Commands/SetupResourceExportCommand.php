@@ -166,7 +166,7 @@ class SetupResourceExportCommand extends Command
                 $endOfLine = strpos($content, "\n", $lastImportPos + 1);
                 if ($endOfLine !== false) {
                     $import = "use Filament\\AdvancedExport\\Traits\\HasAdvancedExport;\n";
-                    $content = substr($content, 0, $endOfLine + 1) . $import . substr($content, $endOfLine + 1);
+                    $content = substr($content, 0, $endOfLine + 1).$import.substr($content, $endOfLine + 1);
                 }
             }
         }
@@ -203,11 +203,11 @@ class SetupResourceExportCommand extends Command
                 if (empty($existingActions)) {
                     $newActions = "\n            \$this->getAdvancedExportHeaderAction(),\n        ";
                 } else {
-                    $newActions = "\n            \$this->getAdvancedExportHeaderAction(),\n            " . trim($existingActions) . "\n        ";
+                    $newActions = "\n            \$this->getAdvancedExportHeaderAction(),\n            ".trim($existingActions)."\n        ";
                 }
                 $content = preg_replace(
                     '/(protected function getHeaderActions\(\).*?return\s*\[)(.*?)(\];)/s',
-                    '$1' . $newActions . '$3',
+                    '$1'.$newActions.'$3',
                     $content
                 );
             } else {
@@ -223,7 +223,7 @@ class SetupResourceExportCommand extends Command
 PHP;
                 $content = preg_replace(
                     '/\}(\s*)$/',
-                    $methodCode . "\n}\$1",
+                    $methodCode."\n}\$1",
                     $content
                 );
             }

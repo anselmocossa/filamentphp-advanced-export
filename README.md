@@ -11,9 +11,13 @@ Advanced export functionality for Filament resources with dynamic column selecti
 - **One-Command Setup** - Configure export for any resource with a single command
 - **Dynamic Column Selection** - Users choose which columns to export
 - **Custom Column Titles** - Rename columns in the exported file
-- **Configurable Ordering** - Sort by any column, ascending or descending
+- **XLSX and CSV Formats** - Export in Excel or CSV format via modal selector
+- **Record Count Preview** - See how many records will be exported before exporting
+- **Configurable Ordering** - Sort by any column with validated input (ascending or descending)
 - **Automatic Filter Support** - Automatically respects active Filament table filters
+- **Configurable Fallback Filters** - Override fallback filter names per resource or via config
 - **Background Processing** - Queue large exports for async processing
+- **Secure Error Handling** - Generic user notifications, detailed internal logging
 - **View-Based Templates** - Customizable Blade views for export formatting
 - **Bilingual Support** - English and Portuguese translations included
 - **Artisan Commands** - Generate views and model methods automatically
@@ -241,9 +245,10 @@ return [
 
     // File generation
     'file' => [
-        'extension' => 'xlsx',
+        'extension' => 'xlsx',       // Default format: 'xlsx' or 'csv'
         'disk' => 'public',
         'directory' => 'exports',
+        'supported_formats' => ['xlsx', 'csv'],  // Formats shown in modal
     ],
 
     // Action button appearance
@@ -254,6 +259,12 @@ return [
         'color' => 'success',
     ],
 
+    // Fallback filters (used when dynamic extraction fails)
+    'fallback_filters' => [
+        'created_at',
+        'updated_at',
+    ],
+
     // Queue settings
     'queue' => [
         'enabled' => true,
@@ -262,6 +273,66 @@ return [
     ],
 ];
 ```
+
+## CSV Export
+
+The export modal includes a format selector. Users can choose between XLSX and CSV:
+
+```php
+// config/advanced-export.php
+'file' => [
+    'extension' => 'xlsx',                    // Default format
+    'supported_formats' => ['xlsx', 'csv'],   // Available in modal
+],
+```
+
+CSV exports use the `CsvExport` class which implements `FromCollection` and `WithHeadings` for clean tabular output without view templates.
+
+## Record Count Preview
+
+The export modal shows how many records will be exported before the user clicks the export button. This count respects active filters and the configured maximum limit.
+
+## Fallback Filter Configuration
+
+When dynamic filter extraction fails (e.g., non-standard table implementations), the package falls back to a configurable list of filter names:
+
+```php
+// config/advanced-export.php
+'fallback_filters' => [
+    'created_at',
+    'updated_at',
+    // Add your resource-specific filters here
+],
+```
+
+You can also override per-resource:
+
+```php
+class ListClientes extends ListRecords
+{
+    use HasAdvancedExport;
+
+    protected function getFallbackFilterNames(): array
+    {
+        return ['created_at', 'updated_at', 'status', 'cliente_id'];
+    }
+}
+```
+
+## Security
+
+### Error Handling
+
+Export errors show a generic message to the user and log the full error internally:
+
+- **User sees:** "An error occurred while processing the export. Please try again or contact support."
+- **Logs contain:** Full exception message, stack trace, and context
+
+### Input Validation
+
+- **Order column** is validated against the database schema and export columns list
+- **Order direction** only accepts `asc` or `desc` (case-insensitive), invalid values fall back to `desc`
+- **Dot notation columns** (e.g., `client.name`) are skipped gracefully in ordering -- override `applyCustomOrdering()` to handle them with joins
 
 ## Screenshots
 
@@ -320,7 +391,9 @@ class ListDeclarations extends ListRecords
 
 ### Custom Ordering
 
-Handle ordering by relationship columns:
+The package validates order columns and directions automatically. Dot notation columns (relationship paths) are skipped by default.
+
+To handle ordering by relationship columns, override `applyCustomOrdering()`:
 
 ```php
 class ListClientes extends ListRecords
@@ -329,13 +402,15 @@ class ListClientes extends ListRecords
 
     protected function applyCustomOrdering($query, string $orderColumn, string $orderDirection): void
     {
-        if ($orderColumn === 'insurer_name') {
+        // Direction is already validated ('asc' or 'desc') at this point
+        if ($orderColumn === 'insurer.name') {
             $query->join('insurers', 'declarations.insurer_id', '=', 'insurers.id')
                   ->orderBy('insurers.name', $orderDirection);
             return;
         }
 
-        $query->orderBy($orderColumn, $orderDirection);
+        // Call parent for standard column validation and ordering
+        parent::applyCustomOrdering($query, $orderColumn, $orderDirection);
     }
 }
 ```

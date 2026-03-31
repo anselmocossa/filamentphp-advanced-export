@@ -179,13 +179,13 @@ class GenerateModelMethodsCommand extends Command
                 // Find the end of that line
                 $endOfLine = strpos($content, "\n", $lastImportPos + 1);
                 if ($endOfLine !== false) {
-                    $content = substr($content, 0, $endOfLine + 1) . $imports . substr($content, $endOfLine + 1);
+                    $content = substr($content, 0, $endOfLine + 1).$imports.substr($content, $endOfLine + 1);
                 }
             } else {
                 // No imports found, add after namespace
                 $content = preg_replace(
                     '/(namespace [^;]+;)/',
-                    "$1\n\n" . rtrim($imports),
+                    "$1\n\n".rtrim($imports),
                     $content
                 );
             }

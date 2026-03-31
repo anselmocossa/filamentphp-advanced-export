@@ -59,6 +59,7 @@ return [
         'directory' => 'exports',
         'name_format' => '{resource}_{type}_{datetime}',
         'datetime_format' => 'Y-m-d_H-i-s',
+        'supported_formats' => ['xlsx', 'csv'],
     ],
 
     /*
@@ -120,6 +121,21 @@ return [
         'created_at',
         'updated_at',
         'created_by',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fallback Filters
+    |--------------------------------------------------------------------------
+    |
+    | Filter names used as fallback when dynamic filter extraction fails.
+    | Add your resource-specific filter names here, or override the
+    | getFallbackFilterNames() method in your ListRecords class.
+    |
+    */
+    'fallback_filters' => [
+        'created_at',
+        'updated_at',
     ],
 
     /*

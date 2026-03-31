@@ -117,6 +117,32 @@ class ExportConfig
         ]);
     }
 
+    /**
+     * Get the fallback filter names used when dynamic filter extraction fails.
+     *
+     * These are configurable via the 'advanced-export.fallback_filters' config key.
+     * By default, only generic timestamp filters are included.
+     *
+     * @return array<string>
+     */
+    public function getFallbackFilterNames(): array
+    {
+        return config('advanced-export.fallback_filters', [
+            'created_at',
+            'updated_at',
+        ]);
+    }
+
+    /**
+     * Get the supported export file formats.
+     *
+     * @return array<string>
+     */
+    public function getSupportedFormats(): array
+    {
+        return config('advanced-export.file.supported_formats', ['xlsx', 'csv']);
+    }
+
     public function isQueueEnabled(): bool
     {
         return config('advanced-export.queue.enabled', true);

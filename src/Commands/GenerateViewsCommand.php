@@ -54,7 +54,7 @@ class GenerateViewsCommand extends Command
         $force = $this->option('force');
 
         if ($this->files->exists($simpleViewPath) && ! $force) {
-            if (! confirm("Simple view already exists. Overwrite?", false)) {
+            if (! confirm('Simple view already exists. Overwrite?', false)) {
                 $this->components->info('Skipping simple view.');
             } else {
                 $this->generateSimpleView($simpleViewPath, $tableName, $variableName, $columns);
@@ -64,7 +64,7 @@ class GenerateViewsCommand extends Command
         }
 
         if ($this->files->exists($advancedViewPath) && ! $force) {
-            if (! confirm("Advanced view already exists. Overwrite?", false)) {
+            if (! confirm('Advanced view already exists. Overwrite?', false)) {
                 $this->components->info('Skipping advanced view.');
             } else {
                 $this->generateAdvancedView($advancedViewPath, $tableName, $variableName, $columns);

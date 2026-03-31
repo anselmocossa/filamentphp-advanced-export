@@ -17,7 +17,7 @@ return [
     */
     'modal' => [
         'heading' => 'Exportar Registros',
-        'description' => 'Selecione as colunas desejadas e confirme. Serão exportadas no máximo :limit linhas com os filtros aplicados.',
+        'description' => 'Selecione as colunas desejadas e confirme. Aproximadamente :count registros serão exportados (limite: :limit) com os filtros aplicados.',
         'submit' => 'Exportar',
     ],
 
@@ -27,6 +27,14 @@ return [
     |--------------------------------------------------------------------------
     */
     'form' => [
+        'record_count' => [
+            'label' => 'Registros a Exportar',
+            'content' => ':count registros encontrados (máximo :limit)',
+        ],
+        'export_format' => [
+            'label' => 'Formato de Exportação',
+            'helper' => 'Escolha o formato do ficheiro de saída',
+        ],
         'order_column' => [
             'label' => 'Ordenar por Coluna',
             'placeholder' => 'Selecione a coluna para ordenação...',
@@ -74,7 +82,7 @@ return [
         ],
         'error' => [
             'title' => 'Erro na exportação',
-            'body' => 'Ocorreu um erro durante o processamento: :message',
+            'body' => 'Ocorreu um erro ao processar a exportação. Tente novamente ou contacte o suporte.',
         ],
     ],
 

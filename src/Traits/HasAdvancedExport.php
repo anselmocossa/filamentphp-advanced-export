@@ -9,7 +9,9 @@ use Filament\AdvancedExport\Concerns\HasExportFilters;
 use Filament\AdvancedExport\Concerns\HasExportNotifications;
 use Filament\AdvancedExport\Concerns\HasExportQuery;
 use Filament\AdvancedExport\Exports\AdvancedExport;
+use Filament\AdvancedExport\Exports\CsvExport;
 use Filament\AdvancedExport\Exports\SimpleExport;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -63,7 +65,8 @@ trait HasAdvancedExport
                 return $this->exportWithCustomColumns(
                     $data['columns'] ?? [],
                     $data['order_column'] ?? 'created_at',
-                    $data['order_direction'] ?? 'desc'
+                    $data['order_direction'] ?? 'desc',
+                    $data['export_format'] ?? 'xlsx'
                 );
             });
     }
@@ -77,8 +80,23 @@ trait HasAdvancedExport
     {
         $columns = $this->getExportColumns();
         $config = $this->getExportConfig();
+        $recordCount = $this->getExportRecordCount();
 
         return [
+            Placeholder::make('record_count')
+                ->label(__('advanced-export::messages.form.record_count.label'))
+                ->content(__('advanced-export::messages.form.record_count.content', [
+                    'count' => number_format($recordCount),
+                    'limit' => number_format($this->getExportLimit()),
+                ])),
+
+            Select::make('export_format')
+                ->label(__('advanced-export::messages.form.export_format.label'))
+                ->options($this->getExportFormatOptions())
+                ->default($config->getFileExtension())
+                ->required()
+                ->helperText(__('advanced-export::messages.form.export_format.helper')),
+
             Select::make('order_column')
                 ->label(__('advanced-export::messages.form.order_column.label'))
                 ->placeholder(__('advanced-export::messages.form.order_column.placeholder'))
@@ -126,6 +144,38 @@ trait HasAdvancedExport
     }
 
     /**
+     * Get the number of records that will be exported with current filters.
+     */
+    protected function getExportRecordCount(): int
+    {
+        try {
+            $activeFilters = $this->extractActiveFilters();
+            $query = $this->buildExportQuery($activeFilters);
+
+            return min($query->count(), $this->getExportLimit());
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Get the available export format options.
+     *
+     * @return array<string, string>
+     */
+    protected function getExportFormatOptions(): array
+    {
+        $formats = $this->getExportConfig()->getSupportedFormats();
+        $options = [];
+
+        foreach ($formats as $format) {
+            $options[$format] = strtoupper($format);
+        }
+
+        return $options;
+    }
+
+    /**
      * Export data with simple configuration.
      */
     protected function exportSimple(): ?BinaryFileResponse
@@ -165,7 +215,8 @@ trait HasAdvancedExport
     protected function exportWithCustomColumns(
         array $columnsConfig = [],
         string $orderColumn = 'created_at',
-        string $orderDirection = 'desc'
+        string $orderDirection = 'desc',
+        string $format = 'xlsx'
     ): ?BinaryFileResponse {
         try {
             if (empty($columnsConfig)) {
@@ -181,6 +232,14 @@ trait HasAdvancedExport
                 $this->showNoDataNotification();
 
                 return null;
+            }
+
+            // Use CSV export class for CSV format
+            if ($format === 'csv') {
+                $export = new CsvExport($records, $columnsConfig);
+                $fileName = $this->generateFileName('advanced', 'csv');
+
+                return Excel::download($export, $fileName, \Maatwebsite\Excel\Excel::CSV);
             }
 
             $export = new AdvancedExport(

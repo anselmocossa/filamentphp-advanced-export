@@ -17,7 +17,7 @@ return [
     */
     'modal' => [
         'heading' => 'Export Records',
-        'description' => 'Select the columns you want to export. Maximum of :limit records will be exported with the applied filters.',
+        'description' => 'Select the columns you want to export. Approximately :count records will be exported (limit: :limit) with the applied filters.',
         'submit' => 'Export',
     ],
 
@@ -27,6 +27,14 @@ return [
     |--------------------------------------------------------------------------
     */
     'form' => [
+        'record_count' => [
+            'label' => 'Records to Export',
+            'content' => ':count records found (maximum :limit)',
+        ],
+        'export_format' => [
+            'label' => 'Export Format',
+            'helper' => 'Choose the output file format',
+        ],
         'order_column' => [
             'label' => 'Order by Column',
             'placeholder' => 'Select the column to order by...',
@@ -74,7 +82,7 @@ return [
         ],
         'error' => [
             'title' => 'Export error',
-            'body' => 'An error occurred during processing: :message',
+            'body' => 'An error occurred while processing the export. Please try again or contact support.',
         ],
     ],
 
