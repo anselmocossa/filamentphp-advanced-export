@@ -8,7 +8,6 @@ use Filament\AdvancedExport\Commands\InstallCommand;
 use Filament\AdvancedExport\Commands\PublishCommand;
 use Filament\AdvancedExport\Commands\SetupResourceExportCommand;
 use Filament\AdvancedExport\Concerns\HasExportPermission;
-use Filament\Facades\Filament;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -65,40 +64,60 @@ class AdvancedExportServiceProvider extends PackageServiceProvider
      */
     protected function registerExportPermissionsInShield(): void
     {
-        // Only if Shield is installed
         if (! class_exists(\BezhanSalleh\FilamentShield\FilamentShield::class)) {
-            return;
-        }
-
-        try {
-            $panels = Filament::getPanels();
-        } catch (\Throwable) {
             return;
         }
 
         $manage = config('filament-shield.resources.manage', []);
 
-        foreach ($panels as $panel) {
-            foreach ($panel->getResources() as $resource) {
-                if (! $this->usesExportPermissionTrait($resource)) {
+        // Scan Filament resource directories for classes using HasExportPermission
+        $resourcePaths = config('filament.resources.path', app_path('Filament/Resources'));
+        $paths = is_array($resourcePaths) ? $resourcePaths : [$resourcePaths];
+
+        foreach ($paths as $path) {
+            if (! is_dir($path)) {
+                continue;
+            }
+
+            $files = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($path)
+            );
+
+            foreach ($files as $file) {
+                if ($file->getExtension() !== 'php') {
                     continue;
                 }
 
-                // Get existing manage methods for this resource, or empty
-                $methods = $manage[$resource] ?? [];
+                // Extract FQCN from file
+                $content = file_get_contents($file->getPathname());
+                if (! preg_match('/namespace\s+([\w\\\\]+)/', $content, $ns)) {
+                    continue;
+                }
+                if (! preg_match('/class\s+(\w+)/', $content, $cls)) {
+                    continue;
+                }
 
-                // Add 'export' if not already present
+                $fqcn = $ns[1] . '\\' . $cls[1];
+
+                if (! class_exists($fqcn)) {
+                    continue;
+                }
+
+                if (! $this->usesExportPermissionTrait($fqcn)) {
+                    continue;
+                }
+
+                $methods = $manage[$fqcn] ?? [];
                 if (! in_array('export', $methods)) {
                     $methods[] = 'export';
                 }
-
-                $manage[$resource] = $methods;
+                $manage[$fqcn] = $methods;
             }
         }
 
         config(['filament-shield.resources.manage' => $manage]);
 
-        // Also add 'export' to single_parameter_methods (export doesn't need a model instance)
+        // Add 'export' to single_parameter_methods
         $singleParamMethods = config('filament-shield.policies.single_parameter_methods', []);
         if (! in_array('export', $singleParamMethods)) {
             $singleParamMethods[] = 'export';
