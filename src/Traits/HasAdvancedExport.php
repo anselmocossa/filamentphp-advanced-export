@@ -27,6 +27,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * - Configurable ordering
  * - Filter support
  * - View-based export templates
+ * - Shield permission integration (Export:{Resource})
  *
  * @example
  * class ListClientes extends ListRecords
@@ -49,6 +50,37 @@ trait HasAdvancedExport
     use HasExportQuery;
 
     /**
+     * Check if the current user can export from this resource.
+     *
+     * If FilamentShield is installed and the Resource uses HasExportPermission,
+     * checks for the 'export' permission (e.g., Export:Titular).
+     * Without Shield, export is always allowed.
+     */
+    protected function canExport(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        // If user has a 'can' method (Spatie HasRoles), check export permission
+        if (method_exists($user, 'can')) {
+            $model = static::$resource::getModel();
+            $modelInstance = new $model;
+
+            // Check if a policy with 'export' method exists for this model
+            $policy = policy($modelInstance);
+            if ($policy && method_exists($policy, 'export')) {
+                return $user->can('export', $modelInstance);
+            }
+        }
+
+        // No Shield or no export policy method — allow export
+        return true;
+    }
+
+    /**
      * Create the advanced export header action.
      */
     protected function getAdvancedExportHeaderAction(): Action
@@ -61,6 +93,7 @@ trait HasAdvancedExport
             ->modalHeading($this->getExportModalHeading())
             ->modalDescription($this->getExportModalDescription())
             ->modalSubmitActionLabel($this->getExportModalSubmitLabel())
+            ->visible(fn (): bool => $this->canExport())
             ->action(function (array $data): ?BinaryFileResponse {
                 return $this->exportWithCustomColumns(
                     $data['columns'] ?? [],

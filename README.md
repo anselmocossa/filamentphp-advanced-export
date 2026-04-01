@@ -19,6 +19,7 @@ Advanced export functionality for Filament resources with dynamic column selecti
 - **Background Processing** - Queue large exports for async processing
 - **Secure Error Handling** - Generic user notifications, detailed internal logging
 - **View-Based Templates** - Customizable Blade views for export formatting
+- **FilamentShield Integration** - Per-resource export permissions (Export:Titular, etc.)
 - **Bilingual Support** - English and Portuguese translations included
 - **Artisan Commands** - Generate views and model methods automatically
 
@@ -825,6 +826,34 @@ class ListClientes extends ListRecords
     }
 }
 ```
+
+## FilamentShield Integration
+
+If you use [FilamentShield](https://filamentphp.com/plugins/bezhansalleh-shield), the export button can be controlled per role/resource.
+
+### Step 1: Add the trait to your Resource
+
+```php
+use Filament\AdvancedExport\Concerns\HasExportPermission;
+
+class TitularResource extends Resource
+{
+    use HasExportPermission;
+    // ...
+}
+```
+
+This registers `export` as a permission prefix. When you run `php artisan shield:generate`, Shield will create `Export:Titular` automatically.
+
+### Step 2: That's it!
+
+The export button will only be visible to users with the `Export:{Resource}` permission. Without Shield installed, the button is visible to everyone.
+
+### How it works
+
+- `HasExportPermission` trait on the **Resource** → tells Shield to generate the `export` permission
+- `HasAdvancedExport` trait on the **ListRecords** → checks if user has the permission before showing the button
+- Without Shield → export is always allowed (no breaking changes)
 
 ## Changelog
 
