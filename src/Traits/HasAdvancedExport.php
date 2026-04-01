@@ -64,19 +64,18 @@ trait HasAdvancedExport
             return false;
         }
 
-        // If user has a 'can' method (Spatie HasRoles), check export permission
-        if (method_exists($user, 'can')) {
+        try {
             $model = static::$resource::getModel();
             $modelInstance = new $model;
 
-            // Check if a policy with 'export' method exists for this model
             $policy = policy($modelInstance);
-            if ($policy && method_exists($policy, 'export')) {
+            if (method_exists($policy, 'export')) {
                 return $user->can('export', $modelInstance);
             }
+        } catch (\Throwable) {
+            // No policy registered — allow export
         }
 
-        // No Shield or no export policy method — allow export
         return true;
     }
 
