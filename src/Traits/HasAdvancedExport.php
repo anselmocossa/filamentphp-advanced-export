@@ -92,7 +92,6 @@ trait HasAdvancedExport
             ->modalHeading($this->getExportModalHeading())
             ->modalDescription($this->getExportModalDescription())
             ->modalSubmitActionLabel($this->getExportModalSubmitLabel())
-            ->authorize(fn (): bool => $this->canExport())
             ->action(function (array $data): ?BinaryFileResponse {
                 return $this->exportWithCustomColumns(
                     $data['columns'] ?? [],
