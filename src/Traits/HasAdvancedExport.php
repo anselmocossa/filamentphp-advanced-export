@@ -88,7 +88,7 @@ trait HasAdvancedExport
             ->label($this->getExportActionLabel())
             ->color($this->getExportActionColor())
             ->icon($this->getExportActionIcon())
-            ->form($this->getExportForm())
+            ->form(fn (): array => $this->getExportForm())
             ->modalHeading($this->getExportModalHeading())
             ->modalDescription($this->getExportModalDescription())
             ->modalSubmitActionLabel($this->getExportModalSubmitLabel())

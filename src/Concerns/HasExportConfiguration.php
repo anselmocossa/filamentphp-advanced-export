@@ -182,13 +182,17 @@ trait HasExportConfiguration
     /**
      * Get the modal description text.
      */
-    protected function getExportModalDescription(): string
+    protected function getExportModalDescription(): string|\Closure
     {
-        return config('advanced-export.action.modal_description')
-            ?? __('advanced-export::messages.modal.description', [
-                'count' => number_format($this->getExportRecordCount()),
-                'limit' => number_format($this->getExportLimit()),
-            ]);
+        $configDescription = config('advanced-export.action.modal_description');
+        if ($configDescription) {
+            return $configDescription;
+        }
+
+        return fn (): string => __('advanced-export::messages.modal.description', [
+            'count' => number_format($this->getExportRecordCount()),
+            'limit' => number_format($this->getExportLimit()),
+        ]);
     }
 
     /**
