@@ -111,13 +111,12 @@ trait HasAdvancedExport
     {
         $columns = $this->getExportColumns();
         $config = $this->getExportConfig();
-        $recordCount = $this->getExportRecordCount();
 
         return [
             Placeholder::make('record_count')
                 ->label(__('advanced-export::messages.form.record_count.label'))
-                ->content(__('advanced-export::messages.form.record_count.content', [
-                    'count' => number_format($recordCount),
+                ->content(fn (): string => __('advanced-export::messages.form.record_count.content', [
+                    'count' => number_format($this->getExportRecordCount()),
                     'limit' => number_format($this->getExportLimit()),
                 ])),
 
